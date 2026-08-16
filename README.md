@@ -24,6 +24,84 @@ brew install --cask cmux
 
 CLI ツール自体は cmux に組み込まれており、cmux 内のターミナルでは自動的に使える。cmux の外（通常のターミナルなど）から使う場合はシンボリックリンクの作成が必要。
 
+## 初心者向け活用Tips
+
+参考：[cmuxの使い方：完全ガイド（note）](https://note.com/kawaidesign/n/ne9dd5aa7d125)
+
+### 基本の考え方
+
+cmuxは「ウィンドウ → ワークスペース → ペイン → サーフェス」という階層構造で画面を整理する。**1案件＝1ワークスペース、案件内の個々の作業＝ワークスペース内の複数ペイン**という単位で使うのが基本の考え方。案件をまたぐときはワークスペースごと切り替える（`⌘1`〜`9`）。
+
+### 最初に覚えるべきショートカット
+
+すべてのショートカットは後述の「デフォルトキーボードショートカット」節に一覧があるが、最初はこれだけ覚えれば動かせる。
+
+| ショートカット | 機能 |
+| --- | --- |
+| `⌘N` | 新しいワークスペースを作成 |
+| `⌘1`〜`9` | ワークスペースを切り替え |
+| `⌘T` | 同じペインに新しいサーフェス（ターミナル）を追加 |
+| `⌘D` / `⌘⇧D` | ペインを右/下に分割 |
+| `⌥⌘←→↑↓` | 隣のペインへフォーカス移動 |
+| `⌘⇧O` | 直前のセッションを再度開く |
+
+### AIエージェントを並行運用するときのレイアウト例
+
+1つのワークスペース内でペインを役割分担すると作業が把握しやすい。
+
+- 左ペイン：Claude Code や Codex などのAIエージェント本体
+- 右上ペイン：テスト実行・開発サーバー
+- 右下ペイン：ログ・差分（`⌃⌘⇧D`で差分ビューアーを開く）の確認
+
+エージェントが入力待ちになるとリング表示・通知（`⌘I`）で知らせてくれるので、複数エージェントを立てて待ち時間を並行させやすい。ただし**複数エージェントに同じファイルを編集させる構成は競合を招きやすいため避ける**（ペイン・案件を分けてファイルの担当範囲を分離する）。
+
+### Finder・クリップボードとの連携
+
+ターミナル操作とFinder/クリップボードを行き来する定番コマンド。
+
+```bash
+open .                    # 現在のフォルダをFinderで開く
+open -R "/path/to/file"   # ファイルをFinderで選択表示
+open "$(pbpaste)"         # クリップボードにコピーしたパスをそのまま開く
+```
+
+AIエージェントが出力したファイルパスをコピーして `open "$(pbpaste)"` で即座にFinder確認する、という流れが特に使いやすい。
+
+### 内蔵ブラウザのCookie・履歴引き継ぎ
+
+cmuxの内蔵ブラウザ（Webサーフェス）は、初回起動時に既存ブラウザ（Arc / Chrome等）からCookieや閲覧履歴をインポートできる。これにより、GitHubなど普段使っているサービスに**再ログインする手間を省ける**のがメリット。
+
+- アドレスバー右端の「インポート」ボタン、または初回起動時に自動でプロファイル読み込みが走る
+- 「Arc から cookie + 履歴 をインポート中...」のようなポップアップが表示されている間は取り込み処理中
+- Arc/Chrome側の履歴・セッションデータが多いと、数秒〜十数秒待たされることがある
+- 一度インポートが完了すれば、次回以降は同じ待ち時間は基本的に発生せず、ログイン状態も引き継がれたままになる
+- 処理が固まって進まない場合は、Escキーを押すか、対象のペイン/サーフェスを閉じて作り直すことでキャンセルできる
+
+普段使っているブラウザの認証情報を引き継げる代わりに、Cookie・履歴という機微な情報を取り込む処理である点には注意する。
+
+### パフォーマンスに気をつける使い方
+
+負荷が上がりやすい状況と対策：
+
+- **負荷要因**：使っていないAIエージェントの起動放置、内蔵ブラウザでの重いページ・開発者ツール多重起動、複数エージェントによる同一ファイル編集、大量ログを出すテストの放置、不要なリモート（SSH）セッションの残存
+- **対策**：`cmux top` で負荷内訳を確認する、アイドル状態のエージェントは休止させる、ブラウザの非表示タブは破棄設定にする（再読み込みは発生する点に注意）
+
+### 向いていない使い方
+
+以下のようなワークフローには向かない（他のツールの方が適している）。
+
+- 単一ターミナルだけで完結する軽い作業
+- GUIでの承認フロー・操作履歴を重視したい場合
+- Windows/Linuxと同じ操作感を求める場合
+- AIにファイル編集を任せず、自分でエディタ中心に作業したい場合
+
+### 実践の最初の一歩
+
+1. 左ペインでCodexまたはClaude Codeを起動する
+2. 右上ペインでテスト・開発サーバーを実行する
+3. 右下ペインで `cmux top` を実行し、負荷を監視する
+4. AIエージェントが出したパスを `open "$(pbpaste)"` でFinder確認する
+
 ## 共通オプション
 
 | オプション | 説明 |
@@ -113,6 +191,94 @@ cmux send --surface <id> "echo hello"
 ```bash
 cmux send-key enter
 cmux send-key --surface <id> enter
+```
+
+## ブラウザ自動操作コマンド
+
+cmuxのワークスペースに組み込まれているブラウザパネル（`[browser]`タイプのサーフェス）を、CLIから直接操作するためのコマンド群。**claude-in-chrome拡張機能とは別物。** cmux上でブラウザテスト・動作確認を行う場合は、claude-in-chromeではなくこちらの`cmux browser`コマンドを使う。
+
+参考：[ブラウザ自動操作ドキュメント](https://cmux.com/docs/browser-automation)、[cmux-browserスキル](https://raw.githubusercontent.com/manaflow-ai/cmux/main/skills/cmux-browser/SKILL.md)、[コマンドリファレンス](https://raw.githubusercontent.com/manaflow-ai/cmux/main/skills/cmux-browser/references/commands.md)
+
+### 対象ブラウザサーフェスの調べ方
+
+`cmux browser`のほとんどのサブコマンドはサーフェス指定が必要（`--surface <id>`、または最初の位置引数）。まず現在のワークスペース構成を確認し、`[browser]`タイプのサーフェスIDを特定する。
+
+```bash
+cmux tree
+```
+
+出力例：
+
+```
+└── workspace workspace:4 "..." [selected] ◀ active
+    ├── pane pane:9 [focused]
+    │   └── surface surface:9 [terminal] ...
+    └── pane pane:12
+        └── surface surface:12 [browser] "新規タブ" [selected]
+```
+
+この場合、以降のコマンドは `cmux browser --surface surface:12 ...` の形で実行する。
+
+### ブラウザパネルを開く
+
+```bash
+cmux browser open https://example.com
+cmux browser open-split https://example.com --workspace <id>
+```
+
+### ページ遷移
+
+```bash
+cmux browser --surface surface:12 goto https://github.com/<user>
+cmux browser --surface surface:12 navigate https://github.com/<user>
+cmux browser --surface surface:12 back
+cmux browser --surface surface:12 forward
+cmux browser --surface surface:12 reload
+```
+
+### 現在のURL・タイトルを取得
+
+```bash
+cmux browser --surface surface:12 url
+cmux browser --surface surface:12 get url
+cmux browser --surface surface:12 get title
+```
+
+### ページの状態を取得（アクセシビリティスナップショット）
+
+```bash
+cmux browser --surface surface:12 snapshot
+cmux browser --surface surface:12 snapshot --interactive
+```
+
+### 要素の取得・操作
+
+```bash
+cmux browser --surface surface:12 get text --selector "h1"
+cmux browser --surface surface:12 find role button --name "Sign in"
+cmux browser --surface surface:12 click --selector "button.submit"
+cmux browser --surface surface:12 type --selector "input[name=q]" "検索語"
+cmux browser --surface surface:12 press enter
+```
+
+### スクリーンショット
+
+```bash
+cmux browser --surface surface:12 screenshot --out /tmp/shot.png
+```
+
+### JavaScript実行
+
+```bash
+cmux browser --surface surface:12 eval "document.title"
+```
+
+### その他
+
+`wait`（要素・URL・ロード状態待機）、`cookies`（Cookie操作）、`console`/`errors`（コンソールログ・エラー取得）、`dialog`（ダイアログ処理）、`tab`（タブ管理）など。全サブコマンドは以下で確認できる。
+
+```bash
+cmux browser --help
 ```
 
 ## 通知コマンド
